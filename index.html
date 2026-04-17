@@ -280,21 +280,64 @@
         </select>
       </div>
 
+      <!-- ACE branching logic: drives whether the under-16 or 16+ sub-block shows. -->
       <div class="field">
-        <label class="title" for="ace_issues">Were there any issues with ACE?</label>
-        <textarea id="ace_issues" placeholder="How did YP react to conversation about it? What did they say when asked if CM knows? Are they okay with CM knowing?"></textarea>
+        <label class="title" for="ace_under_16">Is YP under 16?</label>
+        <select id="ace_under_16">
+          <option value="">— omit from notes —</option>
+          <option>Yes</option>
+          <option>No</option>
+        </select>
       </div>
 
-      <div class="field">
-        <label class="title" for="ace_first_three">Did YP answer yes to any of the first three questions?</label>
-        <select id="ace_first_three">
-          <option value="">— omit from notes —</option>
-          <option>No – denied all three</option>
-          <option>Yes – endorsed item 1</option>
-          <option>Yes – endorsed item 2</option>
-          <option>Yes – endorsed item 3</option>
-          <option>Yes – endorsed multiple items</option>
-        </select>
+      <!-- Under-16 branch -->
+      <div class="ace-under-16-block">
+        <div class="field">
+          <label class="title" for="ace_endorsed_2_3">Did YP endorse questions two or three?</label>
+          <select id="ace_endorsed_2_3">
+            <option value="">— omit from notes —</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </div>
+
+        <!-- Sub-branch when 2-or-3 endorsed -->
+        <div class="ace-endorsed-2-3-block">
+          <div class="field">
+            <label class="title" for="ace_cm_reaction">How did YP react to being told this will be passed on to CM?</label>
+            <textarea id="ace_cm_reaction" placeholder="e.g., accepted calmly, expressed concerns about confidentiality, asked questions"></textarea>
+          </div>
+
+          <div class="field">
+            <label class="title" for="ace_cm_plan">What is the plan for informing CM?</label>
+            <select id="ace_cm_plan">
+              <option value="">— omit from notes —</option>
+              <option>CM was informed after the session</option>
+              <option>CM will be informed after completing this tracking note</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 16+ branch -->
+      <div class="ace-16-plus-block">
+        <div class="field">
+          <label class="title" for="ace_endorsement">Did YP endorse any items?</label>
+          <select id="ace_endorsement">
+            <option value="">— omit from notes —</option>
+            <option>No – nil risk</option>
+            <option>Yes – nil risk and no need to pass on information</option>
+            <option>Yes – risk identified, passing on to treating team</option>
+          </select>
+        </div>
+
+        <!-- Sub-branch when "risk identified" picked -->
+        <div class="ace-risk-identified-block">
+          <div class="field">
+            <label class="title" for="ace_risk_detail">Further information</label>
+            <textarea id="ace_risk_detail" placeholder="What was disclosed, when CM was/will be informed, follow-up plan"></textarea>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -457,6 +500,32 @@ function applySessionType() {
 document.querySelectorAll('input[name="session_type"]').forEach(r => r.addEventListener('change', applySessionType));
 applySessionType();
 
+// ── ACE branching: under-16 / 16+ paths and their sub-branches ──
+function applyAceBranching() {
+  const u16        = (document.getElementById('ace_under_16') || {}).value || '';
+  const endorsed23 = (document.getElementById('ace_endorsed_2_3') || {}).value || '';
+  const endorsement = (document.getElementById('ace_endorsement') || {}).value || '';
+
+  const showUnder16   = (u16 === 'Yes');
+  const show16Plus    = (u16 === 'No');
+  const showCmSub     = showUnder16 && (endorsed23 === 'Yes');
+  const showRiskSub   = show16Plus && /risk identified/i.test(endorsement);
+
+  const toggle = (sel, hide) => {
+    const el = document.querySelector(sel);
+    if (el) el.classList.toggle('hidden', hide);
+  };
+  toggle('.ace-under-16-block',        !showUnder16);
+  toggle('.ace-16-plus-block',         !show16Plus);
+  toggle('.ace-endorsed-2-3-block',    !showCmSub);
+  toggle('.ace-risk-identified-block', !showRiskSub);
+}
+['ace_under_16', 'ace_endorsed_2_3', 'ace_endorsement'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', applyAceBranching);
+});
+applyAceBranching();
+
 // ── Helpers ──
 function getField(id) {
   const el = document.getElementById(id);
@@ -555,8 +624,12 @@ function readFields() {
     priorEvents: getField('prior_events'),
     consentQ: getField('consent_questions'),
     consentSigned: getField('consent_signed'),
-    aceIssues: getField('ace_issues'),
-    aceFirstThree: getField('ace_first_three'),
+    aceUnder16: getField('ace_under_16'),
+    aceEndorsed23: getField('ace_endorsed_2_3'),
+    aceCmReaction: getField('ace_cm_reaction'),
+    aceCmPlan: getField('ace_cm_plan'),
+    aceEndorsement: getField('ace_endorsement'),
+    aceRiskDetail: getField('ace_risk_detail'),
     neurocogReaction: getField('neurocog_reaction'),
     neurocogMood: getField('neurocog_mood'),
     accommodations: getField('accommodations'),
@@ -581,6 +654,48 @@ function renderAdmin(f) {
   if (f.payment)          out += 'Payment: ' + f.payment.toLowerCase() + '. ';
   if (f.followUpActions)  { out += 'Follow-up actions: ' + lcaseFirst(f.followUpActions); out = ensureTerminated(out); }
   if (f.outstandingItems) { out += 'Outstanding items: ' + lcaseFirst(f.outstandingItems); out = ensureTerminated(out); }
+  return out;
+}
+
+// ── Render the ACE section, branching on YP age ──
+function renderACE(f) {
+  let out = '';
+  if (f.aceUnder16 === 'Yes') {
+    if (f.aceEndorsed23 === 'Yes') {
+      out += 'YP is under 16 and endorsed item two and/or three on the ACE. ';
+      if (f.aceCmReaction) {
+        out += 'When informed that this would be passed on to their case manager, ' + lcaseFirst(f.aceCmReaction);
+        out = ensureTerminated(out);
+      }
+      if (f.aceCmPlan) {
+        out += 'Plan for informing CM: ' + lcaseFirst(f.aceCmPlan);
+        out = ensureTerminated(out);
+      }
+    } else if (f.aceEndorsed23 === 'No') {
+      out += 'YP is under 16 and did not endorse items two or three on the ACE. ';
+    } else {
+      out += 'YP is under 16. ';
+    }
+  } else if (f.aceUnder16 === 'No') {
+    if (f.aceEndorsement) {
+      const e = f.aceEndorsement.toLowerCase();
+      if (/risk identified/.test(e)) {
+        out += 'YP endorsed items on the ACE and a risk was identified, which has been passed on to the treating team. ';
+        if (f.aceRiskDetail) {
+          out += lcaseFirst(f.aceRiskDetail);
+          out = ensureTerminated(out);
+        }
+      } else if (/^yes/.test(e)) {
+        out += 'YP endorsed items on the ACE; ' + lcaseFirst(f.aceEndorsement);
+        out = ensureTerminated(out);
+      } else if (/^no/.test(e)) {
+        out += 'YP did not endorse any items on the ACE. ';
+      } else {
+        out += 'Regarding ACE, ' + lcaseFirst(f.aceEndorsement);
+        out = ensureTerminated(out);
+      }
+    }
+  }
   return out;
 }
 
@@ -625,8 +740,7 @@ function generateKellyProse() {
   if (f.consentQ)      { p += 'Regarding the consent process, ' + lcaseFirst(f.consentQ); p = ensureTerminated(p); }
   if (f.consentSigned) p += 'The consent form was ' + f.consentSigned.toLowerCase() + '. ';
 
-  if (f.aceIssues)     { p += 'Regarding ACE, ' + lcaseFirst(f.aceIssues); p = ensureTerminated(p); }
-  if (f.aceFirstThree) p += 'For the first three ACE questions, ' + f.aceFirstThree.toLowerCase() + '. ';
+  p += renderACE(f);
 
   if (f.neurocogReaction) { p += 'During the neurocognitive assessment, ' + lcaseFirst(f.neurocogReaction); p = ensureTerminated(p); }
   if (f.neurocogMood)     p += subject + '\u2019s mood during neurocog was ' + f.neurocogMood.toLowerCase() + '. ';
@@ -710,8 +824,7 @@ function generateCaseNote() {
     if (f.consentSigned) p += 'Consent form was ' + f.consentSigned.toLowerCase() + '. ';
   }
 
-  if (f.aceIssues)     { p += 'Regarding ACE, ' + lcaseFirst(f.aceIssues); p = ensureTerminated(p); }
-  if (f.aceFirstThree) p += 'For the first three ACE questions, ' + f.aceFirstThree.toLowerCase() + '. ';
+  p += renderACE(f);
 
   if (f.neurocogReaction) { p += 'During the neurocognitive assessment, ' + lcaseFirst(f.neurocogReaction); p = ensureTerminated(p); }
   if (f.neurocogMood)     p += subject + '\u2019s mood during neurocog was ' + f.neurocogMood.toLowerCase() + '. ';
