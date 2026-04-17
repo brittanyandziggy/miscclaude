@@ -343,7 +343,15 @@
 
       <div class="field">
         <label class="title" for="clinical_impressions">Clinical impressions</label>
-        <textarea id="clinical_impressions" placeholder="e.g., affect presentation, possible negative symptoms, cognitive fatigue, psychomotor slowing, thought disorganisation"></textarea>
+        <input type="text" id="clinical_impressions" list="clinical_impressions_options" placeholder="Pick from list or type your own">
+        <datalist id="clinical_impressions_options">
+          <option value="No clinical impressions">
+          <option value="Possible negative symptoms">
+          <option value="Cognitive fatigue">
+          <option value="Psychomotor slowing">
+          <option value="Thought disorganisation">
+          <option value="Affect presentation noted">
+        </datalist>
       </div>
 
       <div class="field">
@@ -357,8 +365,13 @@
 
       <div class="field">
         <label class="title" for="risk">Risk Assessment</label>
-        <textarea id="risk" placeholder="e.g., no risk concerns identified; YP disclosed X – CM notified; see risk management plan"></textarea>
-        <p class="hint">If you write "nil" / "no risk", the prose will say "No risks were identified."</p>
+        <input type="text" id="risk" list="risk_options" placeholder="Pick from list or type your own">
+        <datalist id="risk_options">
+          <option value="No risk observed, no risk assessment conducted">
+          <option value="No risk concerns identified">
+          <option value="YP disclosed concerns – CM notified">
+          <option value="See risk management plan">
+        </datalist>
       </div>
 
       <div class="field">
@@ -392,8 +405,8 @@
         <label class="title" for="payment">Was payment put through?</label>
         <select id="payment">
           <option value="">— omit —</option>
-          <option>Yes – processed on the day</option>
-          <option>No – pending</option>
+          <option>Yes</option>
+          <option>No – to be processed by Day Two RA after this session concludes</option>
         </select>
       </div>
 
@@ -615,8 +628,13 @@ function generateKellyProse() {
   }
 
   if (f.risk) {
-    const rLow = f.risk.toLowerCase();
-    if (rLow.includes('nil') || rLow.includes('no risk')) p += 'No risks were identified. ';
+    const rLow = f.risk.toLowerCase().trim();
+    const collapseToCanonical = new Set([
+      'nil risk', 'no risk', 'no risks',
+      'no risk concerns identified', 'no risks identified',
+      'no risks were identified'
+    ]);
+    if (collapseToCanonical.has(rLow)) p += 'No risks were identified. ';
     else { p += f.risk; p = ensureTerminated(p); }
   }
 
@@ -694,8 +712,13 @@ function generateCaseNote() {
   if (f.clinical)   { p += 'Clinically, ' + lcaseFirst(f.clinical); p = ensureTerminated(p); }
 
   if (f.risk) {
-    const rLow = f.risk.toLowerCase();
-    if (rLow.includes('nil') || rLow.includes('no risk')) p += 'Nil risk present or identified. ';
+    const rLow = f.risk.toLowerCase().trim();
+    const collapseToCanonical = new Set([
+      'nil risk', 'no risk', 'no risks',
+      'no risk concerns identified', 'no risks identified',
+      'no risks were identified'
+    ]);
+    if (collapseToCanonical.has(rLow)) p += 'Nil risk present or identified. ';
     else { p += f.risk; p = ensureTerminated(p); }
   }
 
