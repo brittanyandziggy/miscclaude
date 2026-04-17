@@ -1,0 +1,90 @@
+============================================================
+ STRIP N/A MACRO — Setup Instructions
+============================================================
+
+This macro scans your filled-in tracking note and removes
+any field (title + answer + separator) where the answer
+is "N/A". Run it before copy-pasting.
+
+SETUP (one-time, takes ~2 minutes):
+------------------------------------------------------------
+1. Open any Word document
+2. Press Alt + F11 to open the VBA editor
+3. In the left panel, right-click "Normal" > Insert > Module
+4. Paste the VBA code below into the module
+5. Ctrl + S to save, then Alt + Q to close
+6. The macro is now available in all documents via
+   Fn + Alt + F8  (MX Keys)  or  View > Macros > View Macros
+
+============================================================
+ VBA CODE — Copy everything below this line
+============================================================
+
+Sub StripNAFields()
+    '
+    ' StripNAFields Macro
+    ' Removes any field block where the content control
+    ' contains "N/A" from the CogScreen tracking note.
+    '
+    Dim doc As Document
+    Dim cc As ContentControl
+    Dim deletedCount As Long
+
+    Set doc = ActiveDocument
+    deletedCount = 0
+
+    ' Work backwards through content controls so deletions
+    ' don't mess up the indexing of remaining controls
+    Dim i As Long
+    For i = doc.ContentControls.Count To 1 Step -1
+        Set cc = doc.ContentControls(i)
+
+        ' Check if this control contains "N/A"
+        If InStr(1, cc.Range.Text, "N/A", vbTextCompare) > 0 Then
+
+            ' Get the paragraph that contains this content control
+            Dim ccPara As Paragraph
+            Set ccPara = cc.Range.Paragraphs(1)
+
+            ' Find the title paragraph above (the bold one)
+            Dim titlePara As Paragraph
+            Set titlePara = ccPara.Previous
+
+            ' Find the separator paragraph below
+            Dim sepPara As Paragraph
+            Set sepPara = ccPara.Next
+
+            ' Delete in order: separator first, then control, then title
+            ' This avoids shifting issues
+
+            ' Delete separator (empty paragraph with border)
+            If Not sepPara Is Nothing Then
+                If Len(Trim(Replace(sepPara.Range.Text, Chr(13), ""))) = 0 Then
+                    sepPara.Range.Delete
+                End If
+            End If
+
+            ' Delete the content control paragraph
+            ccPara.Range.Delete
+
+            ' Delete the title paragraph if it's bold
+            If Not titlePara Is Nothing Then
+                If titlePara.Range.Font.Bold = True Or titlePara.Range.Font.Bold = wdUndefined Then
+                    ' Check it actually has text (not just another separator)
+                    If Len(Trim(Replace(titlePara.Range.Text, Chr(13), ""))) > 0 Then
+                        titlePara.Range.Delete
+                    End If
+                End If
+            End If
+
+            deletedCount = deletedCount + 1
+        End If
+    Next i
+
+    If deletedCount > 0 Then
+        MsgBox deletedCount & " N/A field(s) removed.", vbInformation, "CogScreen Cleanup"
+    Else
+        MsgBox "No N/A fields found - nothing to remove.", vbInformation, "CogScreen Cleanup"
+    End If
+
+End Sub

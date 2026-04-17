@@ -1,0 +1,303 @@
+============================================================
+ FORMAT AS PROSE MACRO — Setup Instructions
+============================================================
+
+This macro reads your filled-in CogScreen tracking note and
+converts it into flowing prose in your boss's preferred style.
+Everything stays local in Word — no data leaves your machine.
+
+SETUP:
+------------------------------------------------------------
+Add this to the same Normal module as your StripNA macro:
+1. Alt + F11 to open VBA editor
+2. Double-click the module you created under Normal
+3. Paste this code BELOW your existing StripNAFields macro
+4. Ctrl + S to save, Alt + Q to close
+
+TO RUN:
+------------------------------------------------------------
+1. Fill in your tracking note template as usual
+2. Run StripNAFields first (to remove N/A fields)
+3. Then run FormatAsProse (Fn + Alt + F8 > FormatAsProse)
+4. A new document will open with the prose version
+5. Copy-paste from there into your system
+
+============================================================
+ VBA CODE — Copy everything below this line
+============================================================
+
+Sub FormatAsProse()
+    '
+    ' FormatAsProse Macro
+    ' Reads a filled CogScreen template and outputs
+    ' flowing prose in a new document.
+    '
+    Dim doc As Document
+    Dim cc As ContentControl
+    Dim fields As Object
+    Set fields = CreateObject("Scripting.Dictionary")
+
+    Set doc = ActiveDocument
+
+    ' ── Step 1: Extract all field titles and their values ──
+    ' Walk through each content control and pair it with
+    ' the bold title paragraph above it
+
+    Dim i As Long
+    For i = 1 To doc.ContentControls.Count
+        Set cc = doc.ContentControls(i)
+
+        ' Get the content control's text value
+        Dim ccValue As String
+        ccValue = Trim(cc.Range.Text)
+
+        ' Skip placeholder text (grey prompts)
+        If Left(ccValue, 4) = "e.g." Or Left(ccValue, 4) = "Note" Or _
+           Left(ccValue, 6) = "Affect" Or Left(ccValue, 4) = "Free" Or _
+           Left(ccValue, 4) = "How " Or Left(ccValue, 3) = "Did" Or _
+           Left(ccValue, 5) = "Click" Or Left(ccValue, 5) = "Time:" Or _
+           Left(ccValue, 6) = "Choose" Then
+            GoTo NextControl
+        End If
+
+        ' Get the title from the paragraph above
+        Dim ccPara As Paragraph
+        Set ccPara = cc.Range.Paragraphs(1)
+
+        Dim titlePara As Paragraph
+        Set titlePara = ccPara.Previous
+
+        If Not titlePara Is Nothing Then
+            Dim titleText As String
+            titleText = Trim(Replace(titlePara.Range.Text, Chr(13), ""))
+            ' Strip asterisks
+            titleText = Replace(titleText, "*", "")
+
+            ' Store the field
+            If Len(titleText) > 0 And Len(ccValue) > 0 Then
+                fields(titleText) = ccValue
+            End If
+        End If
+
+NextControl:
+    Next i
+
+    ' ── Step 2: Build the prose paragraph ──
+    Dim prose As String
+    Dim ypName As String
+    Dim sessionDate As String
+    Dim sessionTime As String
+    Dim location As String
+
+    ' Extract key fields (with safe defaults)
+    sessionDate = SafeGet(fields, "Date and time of session:")
+    sessionTime = SafeGet(fields, "Time:")
+    If Len(sessionTime) > 0 Then
+        ' Clean up the "Time:" prefix if user included it
+        sessionTime = Replace(sessionTime, "Time:", "")
+        sessionTime = Trim(sessionTime)
+    End If
+    location = SafeGet(fields, "Location and attendees:")
+
+    ' ── Build the prose ──
+
+    ' Opening line
+    prose = "CogScreen research project note published on behalf of Brittany Cook " & _
+            "(CogScreen research assistant at Orygen)." & vbCrLf & vbCrLf
+
+    ' Consent line
+    prose = prose & "YP consented to participate in the CogScreen (HREC #2022.275) " & _
+            "research study. Their participation was supported by their case manager " & _
+            "who was consulted prior to any research contact. A summary of their " & _
+            "research results (a cognitive summary) will be provided to the case " & _
+            "manager to share with YP as per the protocol and consent procedure. "
+
+    ' Session details
+    If Len(sessionDate) > 0 Then
+        prose = prose & "The session was conducted on " & sessionDate
+        If Len(sessionTime) > 0 Then
+            prose = prose & " at " & sessionTime
+        End If
+        ' Extract just the location (before any comma with names)
+        If Len(location) > 0 Then
+            prose = prose & " at " & location
+        End If
+        prose = prose & ". "
+    End If
+
+    ' Appearance
+    Dim appearance As String
+    appearance = SafeGet(fields, "Appearance of YP:")
+    If Len(appearance) > 0 Then
+        ' If it starts with "YP" keep as is, otherwise prefix
+        If Left(UCase(appearance), 2) = "YP" Then
+            prose = prose & appearance
+        Else
+            prose = prose & "YP " & LCase(Left(appearance, 1)) & Mid(appearance, 2)
+        End If
+        If Right(prose, 2) <> ". " Then prose = prose & ". "
+    End If
+
+    ' Eye contact
+    Dim eyeContact As String
+    eyeContact = SafeGet(fields, "Eye Contact:")
+    If Len(eyeContact) > 0 Then
+        prose = prose & "Eye contact was " & LCase(eyeContact) & ". "
+    End If
+
+    ' Affect
+    Dim affect As String
+    affect = SafeGet(fields, "Affect:")
+    If Len(affect) > 0 Then
+        prose = prose & affect
+        If Right(prose, 2) <> ". " Then prose = prose & ". "
+    End If
+
+    ' Rapport
+    Dim rapport As String
+    rapport = SafeGet(fields, "Rapport:")
+    If Len(rapport) > 0 Then
+        prose = prose & "Rapport was " & LCase(rapport) & ". "
+    End If
+
+    ' Consent questions (Day One)
+    Dim consentQ As String
+    consentQ = SafeGet(fields, "Did the YP have any questions about the consent process?")
+    If Len(consentQ) > 0 Then
+        prose = prose & "Regarding the consent process, " & LCase(consentQ) & ". "
+    End If
+
+    Dim consentSigned As String
+    consentSigned = SafeGet(fields, "Was the consent form signed without issue?")
+    If Len(consentSigned) > 0 Then
+        prose = prose & "The consent form was " & LCase(consentSigned) & ". "
+    End If
+
+    ' ACE
+    Dim ace As String
+    ace = SafeGet(fields, "Were there any issues with ACE?")
+    If Len(ace) > 0 Then
+        prose = prose & "Regarding ACE, " & LCase(ace) & ". "
+    End If
+
+    Dim aceQ As String
+    aceQ = SafeGet(fields, "Did YP answer yes to any of the first three questions?")
+    If Len(aceQ) > 0 Then
+        prose = prose & "ACE first three questions: " & LCase(aceQ) & ". "
+    End If
+
+    ' Neurocog (Day Two / Test Retest)
+    Dim neurocog As String
+    neurocog = SafeGet(fields, "How did YP react to Neurocog, anything to note?")
+    If Len(neurocog) > 0 Then
+        prose = prose & "During neurocognitive assessment, " & LCase(neurocog) & ". "
+    End If
+
+    Dim neurocogMood As String
+    neurocogMood = SafeGet(fields, "How was YP" & ChrW(8217) & "s mood during neurocog?")
+    If Len(neurocogMood) > 0 Then
+        prose = prose & "YP's mood during neurocog was " & LCase(neurocogMood) & ". "
+    End If
+
+    Dim accommodations As String
+    accommodations = SafeGet(fields, "Specific considerations/accommodations?")
+    If Len(accommodations) > 0 Then
+        prose = prose & "Accommodations: " & LCase(accommodations) & ". "
+    End If
+
+    ' Test Retest specific
+    Dim differences As String
+    differences = SafeGet(fields, "Any notable differences from previous session?")
+    If Len(differences) > 0 Then
+        prose = prose & "Compared to previous session, " & LCase(differences) & ". "
+    End If
+
+    ' Engagement
+    Dim engagement As String
+    engagement = SafeGet(fields, "YP" & ChrW(8217) & "s engagement:")
+    If Len(engagement) > 0 Then
+        prose = prose & "YP " & LCase(engagement) & ". "
+    End If
+
+    ' Clinical impressions
+    Dim clinical As String
+    clinical = SafeGet(fields, "Clinical impressions:")
+    If Len(clinical) > 0 Then
+        prose = prose & "Clinical impressions: " & LCase(clinical) & ". "
+    End If
+
+    ' Protocol
+    Dim protocol As String
+    protocol = SafeGet(fields, "Did things go according to protocol?")
+    If Len(protocol) > 0 Then
+        If Left(LCase(protocol), 3) = "yes" Then
+            prose = prose & "The session went according to protocol. "
+        Else
+            prose = prose & "Protocol note: " & LCase(protocol) & ". "
+        End If
+    End If
+
+    ' Prior events
+    Dim priorEvents As String
+    priorEvents = SafeGet(fields, "Did anything happen prior to the session that is worth recording?")
+    If Len(priorEvents) > 0 Then
+        If LCase(priorEvents) <> "nothing of note" And LCase(priorEvents) <> "no" And LCase(priorEvents) <> "nil" Then
+            prose = prose & "Prior to the session, " & LCase(priorEvents) & ". "
+        End If
+    End If
+
+    ' Risk
+    Dim risk As String
+    risk = SafeGet(fields, "Risk Assessment:")
+    If Len(risk) > 0 Then
+        If InStr(1, LCase(risk), "nil", vbTextCompare) > 0 Or _
+           InStr(1, LCase(risk), "no risk", vbTextCompare) > 0 Then
+            prose = prose & "No risks were identified. "
+        Else
+            prose = prose & "Risk assessment: " & risk & ". "
+        End If
+    End If
+
+    ' Session end
+    Dim sessionEnd As String
+    sessionEnd = SafeGet(fields, "How did the session end?")
+    If Len(sessionEnd) > 0 Then
+        prose = prose & "The session ended " & LCase(sessionEnd) & ". "
+    End If
+
+    ' Follow-up support
+    Dim followUp As String
+    followUp = SafeGet(fields, "Was there any follow-up support?")
+    If Len(followUp) > 0 Then
+        prose = prose & "Follow-up: " & LCase(followUp) & ". "
+    End If
+
+    ' ── Clean up double periods and spaces ──
+    prose = Replace(prose, "..", ".")
+    prose = Replace(prose, ". .", ".")
+    prose = Replace(prose, "  ", " ")
+
+    ' ── Step 3: Output to a new document ──
+    Dim newDoc As Document
+    Set newDoc = Documents.Add
+
+    ' Add the prose
+    newDoc.Content.Text = prose
+
+    ' Format it
+    newDoc.Content.Font.Name = "Arial"
+    newDoc.Content.Font.Size = 11
+
+    MsgBox "Prose version created in new document. Review and copy-paste.", _
+           vbInformation, "CogScreen Prose Formatter"
+
+End Sub
+
+' ── Helper function to safely get dictionary values ──
+Function SafeGet(dict As Object, key As String) As String
+    If dict.Exists(key) Then
+        SafeGet = dict(key)
+    Else
+        SafeGet = ""
+    End If
+End Function
