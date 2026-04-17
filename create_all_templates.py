@@ -12,7 +12,11 @@ def next_id():
     return sdt_id_counter[0]
 
 def create_template(session_type, output_path):
-    """Create a CogScreen tracking note template for a specific session type."""
+    """Create a CogScreen tracking note template for a specific session type.
+
+    Every content control gets a stable w:tag so the FormatAsProse macro can
+    look fields up by tag name rather than matching the visible title string.
+    """
     global sdt_id_counter
     sdt_id_counter = [100]
 
@@ -47,8 +51,8 @@ def create_template(session_type, output_path):
                           'bidi', 'adjustRightInd', 'snapToGrid', 'spacing', 'ind',
                           'contextualSpacing', 'mirrorIndents', 'jc', 'rPr']
         for child in pPr:
-            tag = child.tag.split('}')[1] if '}' in child.tag else child.tag
-            if tag in after_elements:
+            name = child.tag.split('}')[1] if '}' in child.tag else child.tag
+            if name in after_elements:
                 child.addprevious(border_xml)
                 return
         pPr.append(border_xml)
@@ -73,17 +77,19 @@ def create_template(session_type, output_path):
         run.font.bold = True
         run.font.name = "Arial"
 
+    def tag_xml(tag):
+        return f'<w:tag {nsdecls("w")} w:val="{escape(tag)}"/>' if tag else ''
+
     def add_text_sdt(placeholder_text, tag=""):
         sid = next_id()
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(2)
         p.paragraph_format.space_after = Pt(4)
-        tag_xml = f'<w:tag {nsdecls("w")} w:val="{tag}"/>' if tag else ''
         sdt = parse_xml(
             f'<w:sdt {nsdecls("w")}>'
             f'  <w:sdtPr>'
             f'    <w:id w:val="{sid}"/>'
-            f'    {tag_xml}'
+            f'    {tag_xml(tag)}'
             f'    <w:placeholder><w:docPart w:val="DefaultPlaceholder_1082065158"/></w:placeholder>'
             f'    <w:showingPlcHdr/>'
             f'  </w:sdtPr>'
@@ -102,7 +108,7 @@ def create_template(session_type, output_path):
         )
         p._p.append(sdt)
 
-    def add_date_sdt():
+    def add_date_sdt(tag=""):
         sid = next_id()
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(2)
@@ -111,6 +117,7 @@ def create_template(session_type, output_path):
             f'<w:sdt {nsdecls("w")}>'
             f'  <w:sdtPr>'
             f'    <w:id w:val="{sid}"/>'
+            f'    {tag_xml(tag)}'
             f'    <w:placeholder><w:docPart w:val="DefaultPlaceholder_1082065158"/></w:placeholder>'
             f'    <w:showingPlcHdr/>'
             f'    <w:date>'
@@ -141,7 +148,7 @@ def create_template(session_type, output_path):
             xml += f'<w:listItem {nsdecls("w")} w:displayText="{escape(opt)}" w:value="{escape(opt)}"/>'
         return xml
 
-    def add_dropdown_sdt(options, placeholder="Choose an item"):
+    def add_dropdown_sdt(options, placeholder="Choose an item", tag=""):
         sid = next_id()
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(2)
@@ -150,6 +157,7 @@ def create_template(session_type, output_path):
             f'<w:sdt {nsdecls("w")}>'
             f'  <w:sdtPr>'
             f'    <w:id w:val="{sid}"/>'
+            f'    {tag_xml(tag)}'
             f'    <w:placeholder><w:docPart w:val="DefaultPlaceholder_1082065160"/></w:placeholder>'
             f'    <w:showingPlcHdr/>'
             f'    <w:dropDownList>{make_list_items(options, placeholder)}</w:dropDownList>'
@@ -166,7 +174,7 @@ def create_template(session_type, output_path):
         )
         p._p.append(sdt)
 
-    def add_combobox_sdt(options, placeholder="Choose or type your own"):
+    def add_combobox_sdt(options, placeholder="Choose or type your own", tag=""):
         sid = next_id()
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(2)
@@ -175,6 +183,7 @@ def create_template(session_type, output_path):
             f'<w:sdt {nsdecls("w")}>'
             f'  <w:sdtPr>'
             f'    <w:id w:val="{sid}"/>'
+            f'    {tag_xml(tag)}'
             f'    <w:placeholder><w:docPart w:val="DefaultPlaceholder_1082065160"/></w:placeholder>'
             f'    <w:showingPlcHdr/>'
             f'    <w:comboBox>{make_list_items(options, placeholder)}</w:comboBox>'
@@ -192,25 +201,25 @@ def create_template(session_type, output_path):
         p._p.append(sdt)
 
     # Compound helpers
-    def add_field(title, placeholder):
+    def add_field(title, placeholder, tag=""):
         add_title(title)
-        add_text_sdt(placeholder)
+        add_text_sdt(placeholder, tag=tag)
         add_separator()
 
-    def add_date_field(title):
+    def add_date_field(title, date_tag="session_date", time_tag="session_time"):
         add_title(title)
-        add_date_sdt()
-        add_text_sdt("Time: e.g., 10am \u2013 2pm")
+        add_date_sdt(tag=date_tag)
+        add_text_sdt("Time: e.g., 10am \u2013 2pm", tag=time_tag)
         add_separator()
 
-    def add_dropdown_field(title, options, placeholder="Choose an item"):
+    def add_dropdown_field(title, options, placeholder="Choose an item", tag=""):
         add_title(title)
-        add_dropdown_sdt(["N/A \u2013 omit from notes"] + options, placeholder)
+        add_dropdown_sdt(["N/A \u2013 omit from notes"] + options, placeholder, tag=tag)
         add_separator()
 
-    def add_combobox_field(title, options, placeholder="Choose or type your own"):
+    def add_combobox_field(title, options, placeholder="Choose or type your own", tag=""):
         add_title(title)
-        add_combobox_sdt(["N/A \u2013 omit from notes"] + options, placeholder)
+        add_combobox_sdt(["N/A \u2013 omit from notes"] + options, placeholder, tag=tag)
         add_separator()
 
     def add_section_header(text):
@@ -272,17 +281,28 @@ def create_template(session_type, output_path):
     run.font.name = "Arial"
 
     # ══════════════════════════════════════
+    # YP NAME (used throughout the prose)
+    # ══════════════════════════════════════
+    add_field("YP first name (used in prose in place of \u201cYP\u201d):",
+              "e.g., Enzo \u2014 leave blank to keep generic \u201cYP\u201d throughout",
+              tag="yp_first_name")
+
+    # ══════════════════════════════════════
     # COMMON FIELDS
     # ══════════════════════════════════════
 
-    add_date_field("Date and time of session:")
+    add_date_field("Date and time of session:",
+                   date_tag="session_date", time_tag="session_time")
 
-    add_field("Location and attendees:", "e.g., Orygen Parkville \u2013 Brittany and Abigail")
+    add_field("Location and attendees:",
+              "e.g., Orygen Parkville \u2013 Brittany and Abigail",
+              tag="location")
 
     add_field("Appearance of YP:",
         "Note grooming, hygiene, clothing, and any notable physical features such as weight changes, "
         "psychomotor agitation or slowing, or signs of self-neglect. e.g., tidy, well groomed, dressed "
-        "in loose-fitting hoodie and jeans; dishevelled, unkempt hair, clothing stained.")
+        "in loose-fitting hoodie and jeans; dishevelled, unkempt hair, clothing stained.",
+        tag="appearance")
 
     add_combobox_field("Eye Contact:", [
         "Appropriate throughout",
@@ -291,13 +311,14 @@ def create_template(session_type, output_path):
         "Improved over session",
         "Brief and intermittent",
         "Varied \u2013 see clinical impressions",
-    ])
+    ], tag="eye_contact")
 
     add_field("Affect:",
         "Affect is the observable emotional expression you see \u2014 facial expression, vocal tone, "
         "body language \u2014 distinct from mood, which is self-reported. Describe the quality (e.g., "
         "euthymic, flat, anxious, dysphoric, bright), range (restricted, broad, labile), congruence "
-        "with content, and reactivity (e.g., non-reactive throughout vs brightened when discussing interests).")
+        "with content, and reactivity (e.g., non-reactive throughout vs brightened when discussing interests).",
+        tag="affect")
 
     add_combobox_field("Rapport:", [
         "Easily built",
@@ -306,10 +327,11 @@ def create_template(session_type, output_path):
         "Warmed up over time",
         "Difficult to establish",
         "Pre-existing from previous session",
-    ])
+    ], tag="rapport")
 
     add_field("Did anything happen prior to the session that is worth recording?",
-        "e.g., lateness, confusion on location, lack of contact, difficulty scheduling, nothing of note")
+        "e.g., lateness, confusion on location, lack of contact, difficulty scheduling, nothing of note",
+        tag="prior_events")
 
     # ══════════════════════════════════════
     # CONDITIONAL SECTIONS
@@ -319,18 +341,20 @@ def create_template(session_type, output_path):
         add_section_header("Day One")
 
         add_field("Did the YP have any questions about the consent process?",
-            "e.g., asked about data storage, wanted to know who sees results, no questions")
+            "e.g., asked about data storage, wanted to know who sees results, no questions",
+            tag="consent_questions")
 
         add_dropdown_field("Was the consent form signed without issue?", [
             "Yes \u2013 signed without hesitation",
             "Yes \u2013 but needed extra time to read through",
             "Yes \u2013 required explanation of specific sections",
             "No \u2013 see notes",
-        ])
+        ], tag="consent_signed")
 
         add_field("Were there any issues with ACE?",
             "How did YP react to conversation about it? What did they say when asked if CM knows? "
-            "Are they okay with CM knowing?")
+            "Are they okay with CM knowing?",
+            tag="ace_issues")
 
         add_dropdown_field("Did YP answer yes to any of the first three questions?", [
             "No \u2013 denied all three",
@@ -338,37 +362,44 @@ def create_template(session_type, output_path):
             "Yes \u2013 endorsed item 2",
             "Yes \u2013 endorsed item 3",
             "Yes \u2013 endorsed multiple items",
-        ])
+        ], tag="ace_first_three")
 
     elif session_type == "Day Two":
         add_section_header("Day Two")
 
         add_field("How did YP react to Neurocog, anything to note?",
             "e.g., many \u2018don\u2019t knows\u2019, lack of effort, giving up easily, many prompts needed, "
-            "found word generation and similarities demanding")
+            "found word generation and similarities demanding",
+            tag="neurocog_reaction")
 
         add_field("How was YP\u2019s mood during neurocog?",
             "e.g., frustrated, enthusiastic, bored, irritated, cycled between positive demeanour and "
-            "deflated during harder tasks")
+            "deflated during harder tasks",
+            tag="neurocog_mood")
 
         add_field("Specific considerations/accommodations?",
-            "e.g., reading aloud, frequent breaks, snacks, adjusted pacing, session split across two visits")
+            "e.g., reading aloud, frequent breaks, snacks, adjusted pacing, session split across two visits",
+            tag="accommodations")
 
     elif session_type == "Test Retest":
         add_section_header("Test Retest")
 
         add_field("How did YP react to Neurocog, anything to note?",
             "e.g., many \u2018don\u2019t knows\u2019, lack of effort, giving up easily, many prompts needed, "
-            "found word generation and similarities demanding")
+            "found word generation and similarities demanding",
+            tag="neurocog_reaction")
 
         add_field("How was YP\u2019s mood during neurocog?",
-            "e.g., frustrated, enthusiastic, bored, irritated, compared experience to previous session")
+            "e.g., frustrated, enthusiastic, bored, irritated, compared experience to previous session",
+            tag="neurocog_mood")
 
         add_field("Specific considerations/accommodations?",
-            "e.g., reading aloud, frequent breaks, snacks, adjusted pacing")
+            "e.g., reading aloud, frequent breaks, snacks, adjusted pacing",
+            tag="accommodations")
 
         add_field("Any notable differences from previous session?",
-            "e.g., more confident with tasks, less anxious, improved engagement, performance appeared consistent")
+            "e.g., more confident with tasks, less anxious, improved engagement, performance appeared consistent",
+            tag="differences")
 
     # ══════════════════════════════════════
     # ALL SESSIONS (resumed)
@@ -382,19 +413,21 @@ def create_template(session_type, output_path):
         "Enthusiastic",
         "Fluctuated",
         "Initially engaged but fatigued toward end",
-    ])
+    ], tag="engagement")
 
     add_field("Clinical impressions:",
         "e.g., affect presentation, possible negative symptoms, cognitive fatigue, psychomotor "
-        "slowing, thought disorganisation")
+        "slowing, thought disorganisation",
+        tag="clinical_impressions")
 
     add_dropdown_field("Did things go according to protocol?", [
         "Yes",
         "No \u2013 see notes below",
-    ])
+    ], tag="protocol")
 
     add_field("Risk Assessment:",
-        "e.g., no risk concerns identified; YP disclosed X \u2013 CM notified; see risk management plan")
+        "e.g., no risk concerns identified; YP disclosed X \u2013 CM notified; see risk management plan",
+        tag="risk")
 
     add_combobox_field("How did the session end?", [
         "Positive \u2013 YP left in good spirits",
@@ -402,27 +435,32 @@ def create_template(session_type, output_path):
         "YP was upset and needed debriefing",
         "YP left abruptly",
         "Session ended early \u2013 see notes",
-    ])
+    ], tag="session_end")
 
     add_field("Was there any follow-up support?",
-        "e.g., drove YP home, contacted case manager, arranged follow-up call, no follow-up needed")
+        "e.g., drove YP home, contacted case manager, arranged follow-up call, no follow-up needed",
+        tag="follow_up_support")
 
     # ══════════════════════════════════════
     # ADMINISTRATION
     # ══════════════════════════════════════
     add_section_header("Administration")
 
-    add_field("Additional Notes / Actions & Plan:", "Free text for anything not captured above")
+    add_field("Additional Notes / Actions & Plan:",
+              "Free text for anything not captured above",
+              tag="additional_notes")
 
     add_dropdown_field("Was payment put through?", [
         "Yes \u2013 processed on the day",
         "No \u2013 pending",
-    ])
+    ], tag="payment")
 
     add_field("Follow-up actions:",
-        "e.g., book Day Two, check in with CM, send cognitive summary")
+        "e.g., book Day Two, check in with CM, send cognitive summary",
+        tag="follow_up_actions")
     add_field("Outstanding items:",
-        "e.g., incomplete questionnaires, missing consent form, need to reschedule split session")
+        "e.g., incomplete questionnaires, missing consent form, need to reschedule split session",
+        tag="outstanding_items")
 
     doc.save(output_path)
     print(f"  Created: {output_path}")
