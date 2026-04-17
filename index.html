@@ -410,8 +410,8 @@
   </form>
 
   <div class="actions">
-    <button type="button" onclick="generate('kelly')">Generate Kelly prose</button>
-    <button type="button" onclick="generate('case_note')">Generate case note</button>
+    <button type="button" onclick="generate('kelly')">Generate Prose Version</button>
+    <button type="button" onclick="generate('case_note')">Generate Case Note Version</button>
     <button type="button" class="secondary" onclick="window.print()">Print form</button>
     <button type="button" class="danger" onclick="clearAll()">Clear all fields</button>
   </div>
@@ -452,7 +452,9 @@ function getField(id) {
   if (isHidden(el)) return '';
   let v = (el.value || '').trim();
   if (!v) return '';
-  if (/N\/A/i.test(v)) return '';
+  // Universal omit: any field whose entire value is nil / n/a / na
+  // (case-insensitive) is treated as empty.
+  if (/^(nil|n\/?a)$/i.test(v)) return '';
   return v;
 }
 
@@ -466,6 +468,10 @@ function isHidden(el) {
 
 function lcaseFirst(s) {
   if (!s) return s;
+  if (s.length === 1) return s.toLowerCase();
+  // Preserve acronyms / proper nouns: if the first two chars are both
+  // uppercase letters (e.g., "YP", "CM", "ACE"), leave the string alone.
+  if (/^[A-Z][A-Z]/.test(s)) return s;
   return s[0].toLowerCase() + s.slice(1);
 }
 
