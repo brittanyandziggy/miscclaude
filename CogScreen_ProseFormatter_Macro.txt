@@ -1,23 +1,30 @@
 ============================================================
- FORMAT AS PROSE MACRO — Setup Instructions
+ COGSCREEN PROSE MACROS — Setup Instructions
 ============================================================
 
-This macro reads your filled-in CogScreen tracking note and
-converts it into flowing prose in your boss's preferred style.
-Everything stays local in Word — no data leaves your machine.
+This file provides TWO output styles from the same template:
 
-This version (v3) reads fields by their stable tag name instead
-of matching the title text, so renaming a title in the template
-won't break the macro. It also uses Word's built-in placeholder
-API to tell whether a field is empty, and substitutes the YP's
+ 1. FormatAsProse     — Kelly's preferred structured prose
+                        ("Enzo consented to participate in the
+                        CogScreen (HREC #2022.275)...")
+ 2. FormatAsCaseNote  — Narrative case-note style, dated with
+                        DD/MM and written in the "writer" voice
+                        ("30/03 - Enzo attended Day 1 of CogScreen
+                        session today at Headspace Bentleigh...")
+
+Both read fields by their stable tag name, use Word's placeholder
+API to tell whether a field is empty, and substitute the YP's
 first name throughout if you've filled in that field at the top.
 
-SETUP (replaces any earlier FormatAsProse you installed):
+Everything stays local in Word — no data leaves your machine.
+
+SETUP (replaces any earlier prose macros you installed):
 ------------------------------------------------------------
 1. Alt + F11 to open VBA editor
 2. Open your Normal module
-3. Delete any previous FormatAsProse, GetField, SafeGet, and
-   AddPeriod subs/functions if they exist
+3. Delete any previous FormatAsProse, FormatAsCaseNote, GetField,
+   SafeGet, AddPeriod, EnsureTerminated, LCaseFirst, PrefixSubject,
+   CleanTime, DetectSessionType, ToShortDate subs/functions
 4. Paste everything from the VBA CODE section below
 5. Ctrl + S to save, Alt + Q to close
 
@@ -26,7 +33,10 @@ TO RUN:
 1. Fill in your tracking note template as usual (including the
    YP first name field at the top if you want the name used)
 2. Run StripNAFields first (to remove N/A fields)
-3. Then run FormatAsProse (Fn + Alt + F8 > FormatAsProse)
+3. Then run one of:
+     FormatAsProse      (Kelly's structured style)
+     FormatAsCaseNote   (narrative case-note style)
+   via Fn + Alt + F8 > pick the macro name
 4. A new document will open with the prose version
 5. Copy-paste from there into your system
 
@@ -319,3 +329,252 @@ Function PrefixSubject(subject As String, text As String) As String
 
     PrefixSubject = subject & " " & LCaseFirst(stripped)
 End Function
+
+' ── Detect session type by which field tags are present ──
+Function DetectSessionType() As String
+    Dim d As Document
+    Set d = ActiveDocument
+    If d.SelectContentControlsByTag("differences").Count > 0 Then
+        DetectSessionType = "Test Retest"
+    ElseIf d.SelectContentControlsByTag("neurocog_reaction").Count > 0 Then
+        DetectSessionType = "Day Two"
+    ElseIf d.SelectContentControlsByTag("consent_signed").Count > 0 Then
+        DetectSessionType = "Day One"
+    Else
+        DetectSessionType = ""
+    End If
+End Function
+
+' ── Convert "30 March 2026" → "30/03". Fallback: returns input. ──
+Function ToShortDate(longDate As String) As String
+    Dim parts() As String
+    parts = Split(Trim(longDate), " ")
+    If UBound(parts) < 1 Then
+        ToShortDate = longDate
+        Exit Function
+    End If
+
+    Dim dayNum As Integer
+    On Error GoTo Fallback
+    dayNum = CInt(parts(0))
+    On Error GoTo 0
+
+    Dim monthNum As Integer
+    Select Case LCase(parts(1))
+        Case "january":   monthNum = 1
+        Case "february":  monthNum = 2
+        Case "march":     monthNum = 3
+        Case "april":     monthNum = 4
+        Case "may":       monthNum = 5
+        Case "june":      monthNum = 6
+        Case "july":      monthNum = 7
+        Case "august":    monthNum = 8
+        Case "september": monthNum = 9
+        Case "october":   monthNum = 10
+        Case "november":  monthNum = 11
+        Case "december":  monthNum = 12
+        Case Else: GoTo Fallback
+    End Select
+
+    ToShortDate = Format(dayNum, "00") & "/" & Format(monthNum, "00")
+    Exit Function
+
+Fallback:
+    ToShortDate = longDate
+End Function
+
+Sub FormatAsCaseNote()
+    '
+    ' FormatAsCaseNote
+    ' Narrative case-note style: DD/MM prefix, "writer" voice,
+    ' chronological flow. Same tag-based field reads as
+    ' FormatAsProse; just a different prose skeleton.
+    '
+    Dim doc As Document
+    Set doc = ActiveDocument
+
+    ' ── Read fields by tag ──
+    Dim ypName As String: ypName = GetField("yp_first_name")
+    Dim subject As String
+    If Len(ypName) > 0 Then
+        subject = ypName
+    Else
+        subject = "YP"
+    End If
+
+    Dim sessionDate As String: sessionDate = GetField("session_date")
+    Dim sessionTime As String: sessionTime = CleanTime(GetField("session_time"))
+    Dim location As String:    location    = GetField("location")
+    Dim appearance As String:  appearance  = GetField("appearance")
+    Dim eyeContact As String:  eyeContact  = GetField("eye_contact")
+    Dim affect As String:      affect      = GetField("affect")
+    Dim rapport As String:     rapport     = GetField("rapport")
+    Dim priorEvents As String: priorEvents = GetField("prior_events")
+
+    Dim consentQ As String:       consentQ       = GetField("consent_questions")
+    Dim consentSigned As String:  consentSigned  = GetField("consent_signed")
+    Dim aceIssues As String:      aceIssues      = GetField("ace_issues")
+    Dim aceFirstThree As String:  aceFirstThree  = GetField("ace_first_three")
+
+    Dim neurocogReaction As String: neurocogReaction = GetField("neurocog_reaction")
+    Dim neurocogMood As String:     neurocogMood     = GetField("neurocog_mood")
+    Dim accommodations As String:   accommodations   = GetField("accommodations")
+    Dim differences As String:      differences      = GetField("differences")
+
+    Dim engagement As String: engagement = GetField("engagement")
+    Dim clinical As String:   clinical   = GetField("clinical_impressions")
+    Dim protocol As String:   protocol   = GetField("protocol")
+    Dim risk As String:       risk       = GetField("risk")
+    Dim sessionEnd As String: sessionEnd = GetField("session_end")
+    Dim followUp As String:   followUp   = GetField("follow_up_support")
+
+    ' ── Build the prose ──
+    Dim prose As String
+
+    ' DD/MM prefix
+    Dim shortDate As String: shortDate = ToShortDate(sessionDate)
+    If Len(shortDate) > 0 Then prose = shortDate & " - "
+
+    ' Opening: "[subject] attended [Day X of ]CogScreen session today at [location]"
+    Dim sessionLabel As String
+    Select Case DetectSessionType()
+        Case "Day One":     sessionLabel = "Day 1 of CogScreen"
+        Case "Day Two":     sessionLabel = "Day 2 of CogScreen"
+        Case "Test Retest": sessionLabel = "the Test Retest CogScreen"
+        Case Else:          sessionLabel = "CogScreen"
+    End Select
+
+    prose = prose & subject & " attended " & sessionLabel & " session today"
+    If Len(sessionTime) > 0 Then prose = prose & " at " & sessionTime
+    If Len(location) > 0 Then prose = prose & " at " & location
+    prose = prose & ". "
+
+    ' Prior events (lateness, scheduling issues) — sits right after arrival
+    If Len(priorEvents) > 0 Then
+        Dim peLower As String: peLower = LCase(priorEvents)
+        If peLower <> "nothing of note" And peLower <> "no" And peLower <> "nil" And _
+           peLower <> "none" Then
+            prose = prose & "Prior to the session, " & LCaseFirst(priorEvents)
+            prose = EnsureTerminated(prose)
+        End If
+    End If
+
+    ' Appearance
+    If Len(appearance) > 0 Then
+        prose = prose & PrefixSubject(subject, appearance)
+        prose = EnsureTerminated(prose)
+    End If
+
+    ' Eye contact + rapport stitched into one sentence when both present
+    If Len(eyeContact) > 0 And Len(rapport) > 0 Then
+        prose = prose & "Eye contact was " & LCase(eyeContact) & _
+                " and rapport was " & LCase(rapport) & ". "
+    ElseIf Len(eyeContact) > 0 Then
+        prose = prose & "Eye contact was " & LCase(eyeContact) & ". "
+    ElseIf Len(rapport) > 0 Then
+        prose = prose & "Rapport was " & LCase(rapport) & ". "
+    End If
+
+    ' Affect (inserted as-typed)
+    If Len(affect) > 0 Then
+        prose = prose & affect
+        prose = EnsureTerminated(prose)
+    End If
+
+    ' Consent (Day One)
+    If Len(consentQ) + Len(consentSigned) > 0 Then
+        prose = prose & "Writer commenced session by taking " & subject & _
+                " through the consent form. "
+        If Len(consentQ) > 0 Then
+            prose = prose & LCaseFirst(consentQ)
+            prose = EnsureTerminated(prose)
+        End If
+        If Len(consentSigned) > 0 Then
+            prose = prose & "Consent form was " & LCase(consentSigned) & ". "
+        End If
+    End If
+
+    ' ACE (Day One)
+    If Len(aceIssues) > 0 Then
+        prose = prose & "Regarding ACE, " & LCaseFirst(aceIssues)
+        prose = EnsureTerminated(prose)
+    End If
+    If Len(aceFirstThree) > 0 Then
+        prose = prose & "For the first three ACE questions, " & _
+                LCase(aceFirstThree) & ". "
+    End If
+
+    ' Neurocog (Day Two / Test Retest)
+    If Len(neurocogReaction) > 0 Then
+        prose = prose & "During the neurocognitive assessment, " & _
+                LCaseFirst(neurocogReaction)
+        prose = EnsureTerminated(prose)
+    End If
+    If Len(neurocogMood) > 0 Then
+        prose = prose & subject & ChrW(8217) & "s mood during neurocog was " & _
+                LCase(neurocogMood) & ". "
+    End If
+    If Len(accommodations) > 0 Then
+        prose = prose & "Accommodations: " & LCaseFirst(accommodations)
+        prose = EnsureTerminated(prose)
+    End If
+    If Len(differences) > 0 Then
+        prose = prose & "Compared to the previous session, " & LCaseFirst(differences)
+        prose = EnsureTerminated(prose)
+    End If
+
+    ' Protocol + engagement sit in a single summary sentence when protocol=yes
+    If Left(LCase(protocol), 3) = "yes" Then
+        prose = prose & "Session proceeded as per protocol and all measures were completed. "
+    ElseIf Len(protocol) > 0 Then
+        prose = prose & protocol
+        prose = EnsureTerminated(prose)
+    End If
+
+    If Len(engagement) > 0 Then
+        prose = prose & PrefixSubject(subject, engagement)
+        prose = EnsureTerminated(prose)
+    End If
+
+    ' Clinical impressions
+    If Len(clinical) > 0 Then
+        prose = prose & "Clinically, " & LCaseFirst(clinical)
+        prose = EnsureTerminated(prose)
+    End If
+
+    ' Risk
+    If Len(risk) > 0 Then
+        If InStr(1, LCase(risk), "nil", vbTextCompare) > 0 Or _
+           InStr(1, LCase(risk), "no risk", vbTextCompare) > 0 Then
+            prose = prose & "Nil risk present or identified. "
+        Else
+            prose = prose & risk
+            prose = EnsureTerminated(prose)
+        End If
+    End If
+
+    ' Session end + follow-up
+    If Len(sessionEnd) > 0 Then
+        prose = prose & "The session ended " & LCase(sessionEnd) & ". "
+    End If
+    If Len(followUp) > 0 Then
+        prose = prose & "Follow-up: " & LCaseFirst(followUp)
+        prose = EnsureTerminated(prose)
+    End If
+
+    ' ── Cleanup ──
+    prose = Replace(prose, "..", ".")
+    prose = Replace(prose, ". .", ".")
+    prose = Replace(prose, "  ", " ")
+    prose = Trim(prose)
+
+    ' ── Output ──
+    Dim newDoc As Document
+    Set newDoc = Documents.Add
+    newDoc.Content.Text = prose
+    newDoc.Content.Font.Name = "Arial"
+    newDoc.Content.Font.Size = 11
+
+    MsgBox "Case note created in new document. Review and copy-paste.", _
+           vbInformation, "CogScreen Case Note"
+End Sub
