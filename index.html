@@ -210,14 +210,20 @@
         </div>
       </div>
 
-      <div class="field">
-        <label class="title" for="location">Location and attendees</label>
-        <input type="text" id="location" placeholder="e.g., Orygen Parkville – Brittany and Abigail">
+      <div class="row">
+        <div class="field">
+          <label class="title" for="location">Location</label>
+          <input type="text" id="location" placeholder="e.g., Orygen, Parkville">
+        </div>
+        <div class="field">
+          <label class="title" for="attendees">Attendees</label>
+          <input type="text" id="attendees" placeholder="e.g., Brittany and Saad">
+        </div>
       </div>
 
       <div class="field">
         <label class="title" for="appearance">Appearance of YP</label>
-        <textarea id="appearance" placeholder="e.g., was well groomed, dressed in loose-fitting hoodie and jeans"></textarea>
+        <textarea id="appearance" placeholder="e.g., well groomed, dressed in a tidy tracksuit and sneakers"></textarea>
         <p class="hint">Note grooming, hygiene, clothing, and any notable physical features — weight changes, psychomotor agitation or slowing, signs of self-neglect.</p>
       </div>
 
@@ -266,18 +272,18 @@
 
       <div class="field">
         <label class="title" for="consent_questions">Did the YP have any questions about the consent process?</label>
-        <textarea id="consent_questions" placeholder="e.g., asked about data storage, wanted to know who sees results, no questions"></textarea>
+        <select id="consent_questions">
+          <option value="">— omit from notes —</option>
+          <option>No questions regarding consent process</option>
+          <option>YP had questions</option>
+        </select>
       </div>
 
-      <div class="field">
-        <label class="title" for="consent_signed">Was the consent form signed without issue?</label>
-        <select id="consent_signed">
-          <option value="">— omit from notes —</option>
-          <option>Yes – signed without hesitation</option>
-          <option>Yes – but needed extra time to read through</option>
-          <option>Yes – required explanation of specific sections</option>
-          <option>No – see notes</option>
-        </select>
+      <div class="consent-detail-block">
+        <div class="field">
+          <label class="title" for="consent_questions_detail">What did YP ask about?</label>
+          <textarea id="consent_questions_detail" placeholder="e.g., asked about data storage, wanted to know who sees results"></textarea>
+        </div>
       </div>
 
       <!-- ACE branching logic: drives whether the under-16 or 16+ sub-block shows. -->
@@ -375,11 +381,12 @@
         <label class="title" for="engagement">YP's engagement</label>
         <input type="text" id="engagement" list="engagement_options" placeholder="Pick from list or type your own">
         <datalist id="engagement_options">
+          <option value="Was engaged throughout the entire session">
           <option value="Remained engaged throughout">
           <option value="Warmed up over time">
-          <option value="Disengaged">
-          <option value="Enthusiastic">
-          <option value="Fluctuated">
+          <option value="Was disengaged">
+          <option value="Was enthusiastic">
+          <option value="Fluctuated in engagement">
           <option value="Initially engaged but fatigued toward end">
         </datalist>
       </div>
@@ -526,6 +533,15 @@ function applyAceBranching() {
 });
 applyAceBranching();
 
+function applyConsentBranching() {
+  const v = (document.getElementById('consent_questions') || {}).value || '';
+  const block = document.querySelector('.consent-detail-block');
+  if (block) block.classList.toggle('hidden', !/had questions/i.test(v));
+}
+const consentEl = document.getElementById('consent_questions');
+if (consentEl) consentEl.addEventListener('change', applyConsentBranching);
+applyConsentBranching();
+
 // ── Helpers ──
 function getField(id) {
   const el = document.getElementById(id);
@@ -563,6 +579,13 @@ function ensureTerminated(s) {
   const last = trimmed.slice(-1);
   if (last === '.' || last === '!' || last === '?') return trimmed + ' ';
   return trimmed + '. ';
+}
+
+function renderAppearance(subject, text) {
+  let s = text.trim();
+  s = s.replace(/^(YP|[A-Z][a-zA-Z]*)\s+/, '');
+  s = s.replace(/^(was|is|appears|appeared|looked)\s+/i, '');
+  return subject + ' appeared ' + lcaseFirst(s);
 }
 
 function prefixSubject(subject, text) {
@@ -617,13 +640,14 @@ function readFields() {
     sessionDateRaw: getField('session_date'),
     sessionTime: cleanTime(getField('session_time')),
     location: getField('location'),
+    attendees: getField('attendees'),
     appearance: getField('appearance'),
     eyeContact: getField('eye_contact'),
     affect: getField('affect'),
     rapport: getField('rapport'),
     priorEvents: getField('prior_events'),
     consentQ: getField('consent_questions'),
-    consentSigned: getField('consent_signed'),
+    consentDetail: getField('consent_questions_detail'),
     aceUnder16: getField('ace_under_16'),
     aceEndorsed23: getField('ace_endorsed_2_3'),
     aceCmReaction: getField('ace_cm_reaction'),
@@ -662,7 +686,7 @@ function renderACE(f) {
   let out = '';
   if (f.aceUnder16 === 'Yes') {
     if (f.aceEndorsed23 === 'Yes') {
-      out += 'YP is under 16 and endorsed item two and/or three on the ACE. ';
+      out += 'YP is under 16 and endorsed item two and/or three on ACE. ';
       if (f.aceCmReaction) {
         out += 'When informed that this would be passed on to their case manager, ' + lcaseFirst(f.aceCmReaction);
         out = ensureTerminated(out);
@@ -672,7 +696,7 @@ function renderACE(f) {
         out = ensureTerminated(out);
       }
     } else if (f.aceEndorsed23 === 'No') {
-      out += 'YP is under 16 and did not endorse items two or three on the ACE. ';
+      out += 'YP is under 16 and did not endorse items two or three on ACE. ';
     } else {
       out += 'YP is under 16. ';
     }
@@ -680,16 +704,16 @@ function renderACE(f) {
     if (f.aceEndorsement) {
       const e = f.aceEndorsement.toLowerCase();
       if (/risk identified/.test(e)) {
-        out += 'YP endorsed items on the ACE and a risk was identified, which has been passed on to the treating team. ';
+        out += 'YP endorsed items on ACE and a risk was identified, which has been passed on to the treating team. ';
         if (f.aceRiskDetail) {
           out += lcaseFirst(f.aceRiskDetail);
           out = ensureTerminated(out);
         }
       } else if (/^yes/.test(e)) {
-        out += 'YP endorsed items on the ACE; ' + lcaseFirst(f.aceEndorsement);
+        out += 'YP endorsed items on ACE; ' + lcaseFirst(f.aceEndorsement);
         out = ensureTerminated(out);
       } else if (/^no/.test(e)) {
-        out += 'YP did not endorse any items on the ACE. ';
+        out += 'YP did not endorse any items on ACE. ';
       } else {
         out += 'Regarding ACE, ' + lcaseFirst(f.aceEndorsement);
         out = ensureTerminated(out);
@@ -715,14 +739,18 @@ function generateKellyProse() {
   if (sessionDate) {
     p += 'The session was conducted on ' + sessionDate;
     if (f.sessionTime) p += ' at ' + f.sessionTime;
-    if (f.location)    p += ' at ' + f.location;
+    if (f.location)    p += ' conducted at ' + f.location;
+    if (f.attendees)   p += ' attended by ' + f.attendees;
     p += '. ';
-  } else if (f.location) {
-    p += 'The session was conducted at ' + f.location + '. ';
+  } else if (f.location || f.attendees) {
+    if (f.location)  p += 'The session was conducted at ' + f.location;
+    else             p += 'The session was';
+    if (f.attendees) p += ' attended by ' + f.attendees;
+    p += '. ';
   }
 
   if (f.appearance) {
-    p += prefixSubject(subject, f.appearance);
+    p += renderAppearance(subject, f.appearance);
     p = ensureTerminated(p);
   }
   if (f.eyeContact) p += 'Eye contact was ' + f.eyeContact.toLowerCase() + '. ';
@@ -737,8 +765,20 @@ function generateKellyProse() {
     }
   }
 
-  if (f.consentQ)      { p += 'Regarding the consent process, ' + lcaseFirst(f.consentQ); p = ensureTerminated(p); }
-  if (f.consentSigned) p += 'The consent form was ' + f.consentSigned.toLowerCase() + '. ';
+  if (f.consentQ) {
+    if (/had questions/i.test(f.consentQ)) {
+      p += 'Regarding the consent process, YP had questions';
+      if (f.consentDetail) {
+        p += ' \u2013 ' + lcaseFirst(f.consentDetail);
+      }
+      p = ensureTerminated(p);
+    } else if (/no questions/i.test(f.consentQ)) {
+      p += 'No questions regarding the consent process. ';
+    } else {
+      p += 'Regarding the consent process, ' + lcaseFirst(f.consentQ);
+      p = ensureTerminated(p);
+    }
+  }
 
   p += renderACE(f);
 
@@ -748,7 +788,7 @@ function generateKellyProse() {
   if (f.differences)      { p += 'Compared to the previous session, ' + lcaseFirst(f.differences); p = ensureTerminated(p); }
 
   if (f.engagement) { p += prefixSubject(subject, f.engagement); p = ensureTerminated(p); }
-  if (f.clinical)   { p += 'Clinically, ' + lcaseFirst(f.clinical); p = ensureTerminated(p); }
+  if (f.clinical)   { p += f.clinical; p = ensureTerminated(p); }
 
   if (f.protocol) {
     if (f.protocol.toLowerCase().startsWith('yes')) p += 'The session went according to protocol. ';
@@ -795,6 +835,7 @@ function generateCaseNote() {
   p += subject + ' attended ' + label + ' session today';
   if (f.sessionTime) p += ' at ' + f.sessionTime;
   if (f.location)    p += ' at ' + f.location;
+  if (f.attendees)   p += ' attended by ' + f.attendees;
   p += '. ';
 
   if (f.priorEvents) {
@@ -805,7 +846,7 @@ function generateCaseNote() {
     }
   }
 
-  if (f.appearance) { p += prefixSubject(subject, f.appearance); p = ensureTerminated(p); }
+  if (f.appearance) { p += renderAppearance(subject, f.appearance); p = ensureTerminated(p); }
 
   // Stitch eye contact + rapport when both present
   if (f.eyeContact && f.rapport) {
@@ -818,10 +859,18 @@ function generateCaseNote() {
 
   if (f.affect) { p += f.affect; p = ensureTerminated(p); }
 
-  if (f.consentQ || f.consentSigned) {
+  if (f.consentQ) {
     p += 'Writer commenced session by taking ' + subject + ' through the consent form. ';
-    if (f.consentQ)      { p += lcaseFirst(f.consentQ); p = ensureTerminated(p); }
-    if (f.consentSigned) p += 'Consent form was ' + f.consentSigned.toLowerCase() + '. ';
+    if (/had questions/i.test(f.consentQ)) {
+      p += subject + ' had questions';
+      if (f.consentDetail) p += ' \u2013 ' + lcaseFirst(f.consentDetail);
+      p = ensureTerminated(p);
+    } else if (/no questions/i.test(f.consentQ)) {
+      p += subject + ' had no questions regarding the consent process. ';
+    } else {
+      p += lcaseFirst(f.consentQ);
+      p = ensureTerminated(p);
+    }
   }
 
   p += renderACE(f);
@@ -838,7 +887,7 @@ function generateCaseNote() {
   }
 
   if (f.engagement) { p += prefixSubject(subject, f.engagement); p = ensureTerminated(p); }
-  if (f.clinical)   { p += 'Clinically, ' + lcaseFirst(f.clinical); p = ensureTerminated(p); }
+  if (f.clinical)   { p += f.clinical; p = ensureTerminated(p); }
 
   if (f.risk) {
     const rLow = f.risk.toLowerCase().trim();
