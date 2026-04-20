@@ -222,6 +222,75 @@
       </div>
 
       <div class="field">
+        <label class="title" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="fsd_enabled" style="width:auto; margin:0;">
+          Flexible Service Delivery (FSD)
+        </label>
+        <p class="hint">Tick if this session involved FSD — home/community visit, after-hours, or person transport.</p>
+      </div>
+
+      <div class="fsd-block">
+        <div class="field">
+          <label class="title" for="fsd_type">Reason for FSD</label>
+          <select id="fsd_type">
+            <option value="">— select —</option>
+            <option>Home or community visit</option>
+            <option>On-site outside of business hours</option>
+            <option>Person transport</option>
+          </select>
+        </div>
+
+        <div class="fsd-transport-block">
+          <div class="row">
+            <div class="field">
+              <label class="title" for="fsd_pickup_location">Pickup location</label>
+              <input type="text" id="fsd_pickup_location" placeholder="e.g., YP's home">
+            </div>
+            <div class="field">
+              <label class="title" for="fsd_pickup_time">Pickup time</label>
+              <input type="text" id="fsd_pickup_time" placeholder="e.g., 9am">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label class="title" for="fsd_dropoff_location">Drop-off location after session</label>
+              <input type="text" id="fsd_dropoff_location" placeholder="e.g., YP's home">
+            </div>
+            <div class="field">
+              <label class="title" for="fsd_dropoff_time">Drop-off time</label>
+              <input type="text" id="fsd_dropoff_time" placeholder="e.g., 2:30pm">
+            </div>
+          </div>
+        </div>
+
+        <div class="fsd-visit-block">
+          <div class="field">
+            <label class="title" for="fsd_visit_location">Visit location</label>
+            <input type="text" id="fsd_visit_location" placeholder="e.g., YP's home, community centre">
+          </div>
+          <div class="row">
+            <div class="field">
+              <label class="title" for="fsd_arrival_time">Arrival time</label>
+              <input type="text" id="fsd_arrival_time" placeholder="e.g., 10am">
+            </div>
+            <div class="field">
+              <label class="title" for="fsd_departure_time">Departure time</label>
+              <input type="text" id="fsd_departure_time" placeholder="e.g., 2pm">
+            </div>
+          </div>
+        </div>
+
+        <div class="fsd-afterhours-block">
+          <p class="hint">After-hours delivery — session start/end times are captured in the Time of session field above.</p>
+        </div>
+
+        <div class="field">
+          <label class="title" for="fsd_notes">FSD notes (optional)</label>
+          <textarea id="fsd_notes" placeholder="e.g., traffic delays, safety considerations, second RA present, parking arrangements"></textarea>
+        </div>
+      </div>
+
+      <div class="field">
         <label class="title" for="appearance">Appearance of YP</label>
         <textarea id="appearance" placeholder="e.g., well groomed, dressed in a tidy tracksuit and sneakers"></textarea>
         <p class="hint">Note grooming, hygiene, clothing, and any notable physical features — weight changes, psychomotor agitation or slowing, signs of self-neglect.</p>
@@ -542,6 +611,24 @@ const consentEl = document.getElementById('consent_questions');
 if (consentEl) consentEl.addEventListener('change', applyConsentBranching);
 applyConsentBranching();
 
+function applyFsdBranching() {
+  const enabled = !!(document.getElementById('fsd_enabled') || {}).checked;
+  const type    = (document.getElementById('fsd_type') || {}).value || '';
+  const toggle = (sel, hide) => {
+    const el = document.querySelector(sel);
+    if (el) el.classList.toggle('hidden', hide);
+  };
+  toggle('.fsd-block',             !enabled);
+  toggle('.fsd-transport-block',   !(enabled && type === 'Person transport'));
+  toggle('.fsd-visit-block',       !(enabled && type === 'Home or community visit'));
+  toggle('.fsd-afterhours-block',  !(enabled && type === 'On-site outside of business hours'));
+}
+['fsd_enabled', 'fsd_type'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', applyFsdBranching);
+});
+applyFsdBranching();
+
 // ── Helpers ──
 function getField(id) {
   const el = document.getElementById(id);
@@ -641,6 +728,16 @@ function readFields() {
     sessionTime: cleanTime(getField('session_time')),
     location: getField('location'),
     attendees: getField('attendees'),
+    fsdEnabled: !!(document.getElementById('fsd_enabled') || {}).checked,
+    fsdType: getField('fsd_type'),
+    fsdPickupLocation: getField('fsd_pickup_location'),
+    fsdPickupTime: getField('fsd_pickup_time'),
+    fsdDropoffLocation: getField('fsd_dropoff_location'),
+    fsdDropoffTime: getField('fsd_dropoff_time'),
+    fsdVisitLocation: getField('fsd_visit_location'),
+    fsdArrivalTime: getField('fsd_arrival_time'),
+    fsdDepartureTime: getField('fsd_departure_time'),
+    fsdNotes: getField('fsd_notes'),
     appearance: getField('appearance'),
     eyeContact: getField('eye_contact'),
     affect: getField('affect'),
@@ -678,6 +775,42 @@ function renderAdmin(f) {
   if (f.payment)          out += 'Payment: ' + f.payment.toLowerCase() + '. ';
   if (f.followUpActions)  { out += 'Follow-up actions: ' + lcaseFirst(f.followUpActions); out = ensureTerminated(out); }
   if (f.outstandingItems) { out += 'Outstanding items: ' + lcaseFirst(f.outstandingItems); out = ensureTerminated(out); }
+  return out;
+}
+
+// ── Render the FSD (Flexible Service Delivery) section ──
+function renderFSD(f) {
+  if (!f.fsdEnabled || !f.fsdType) return '';
+  let out = '';
+  if (f.fsdType === 'Person transport') {
+    out += 'This session was conducted under FSD (person transport). ';
+    if (f.fsdPickupLocation || f.fsdPickupTime) {
+      out += 'Writer picked up YP';
+      if (f.fsdPickupLocation) out += ' from ' + f.fsdPickupLocation;
+      if (f.fsdPickupTime)     out += ' at ' + f.fsdPickupTime;
+      out += ' and drove them to the session location. ';
+    }
+    if (f.fsdDropoffLocation || f.fsdDropoffTime) {
+      out += 'After the session, writer drove YP';
+      if (f.fsdDropoffLocation) out += ' to ' + f.fsdDropoffLocation;
+      if (f.fsdDropoffTime)     out += ', arriving at ' + f.fsdDropoffTime;
+      out += '. ';
+    }
+  } else if (f.fsdType === 'Home or community visit') {
+    out += 'This session was conducted under FSD (home or community visit). ';
+    if (f.fsdVisitLocation) out += 'The visit took place at ' + f.fsdVisitLocation + '. ';
+    if (f.fsdArrivalTime || f.fsdDepartureTime) {
+      out += 'Writer';
+      if (f.fsdArrivalTime)   out += ' arrived at ' + f.fsdArrivalTime;
+      if (f.fsdDepartureTime) out += ' and departed at ' + f.fsdDepartureTime;
+      out += '. ';
+    }
+  } else if (f.fsdType === 'On-site outside of business hours') {
+    out += 'This session was conducted under FSD (on-site outside of business hours). ';
+  } else {
+    out += 'This session was conducted under FSD (' + f.fsdType.toLowerCase() + '). ';
+  }
+  if (f.fsdNotes) { out += lcaseFirst(f.fsdNotes); out = ensureTerminated(out); }
   return out;
 }
 
@@ -748,6 +881,8 @@ function generateKellyProse() {
     if (f.attendees) p += ' attended by ' + f.attendees;
     p += '. ';
   }
+
+  p += renderFSD(f);
 
   if (f.appearance) {
     p += renderAppearance(subject, f.appearance);
@@ -845,6 +980,8 @@ function generateCaseNote() {
       p = ensureTerminated(p);
     }
   }
+
+  p += renderFSD(f);
 
   if (f.appearance) { p += renderAppearance(subject, f.appearance); p = ensureTerminated(p); }
 
