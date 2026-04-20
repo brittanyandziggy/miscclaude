@@ -88,6 +88,13 @@
     font-style: italic;
     margin: 4px 0 0;
   }
+  .field .prose-hint {
+    color: var(--blue);
+    font-size: 12px;
+    font-style: italic;
+    margin: 4px 0 0;
+  }
+  .field .prose-hint::before { content: "Prose: "; font-weight: 600; font-style: normal; }
 
   input[type=text], input[type=date], select, textarea {
     width: 100%;
@@ -287,12 +294,14 @@
         <div class="field">
           <label class="title" for="fsd_notes">FSD notes (optional)</label>
           <textarea id="fsd_notes" placeholder="e.g., traffic delays, safety considerations, second RA present, parking arrangements"></textarea>
+          <p class="prose-hint">Appended to the FSD sentence as-is.</p>
         </div>
       </div>
 
       <div class="field">
         <label class="title" for="appearance">Appearance of YP</label>
         <textarea id="appearance" placeholder="e.g., well groomed, dressed in a tidy tracksuit and sneakers"></textarea>
+        <p class="prose-hint">[YP] appeared [your answer].</p>
         <p class="hint">Note grooming, hygiene, clothing, and any notable physical features — weight changes, psychomotor agitation or slowing, signs of self-neglect.</p>
       </div>
 
@@ -307,11 +316,13 @@
           <option value="Brief and intermittent">
           <option value="Varied – see clinical impressions">
         </datalist>
+        <p class="prose-hint">Eye contact was [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="affect">Affect</label>
         <textarea id="affect" placeholder="e.g., euthymic, bright and reactive when discussing interests"></textarea>
+        <p class="prose-hint">[Your answer — emitted as its own sentence.]</p>
         <p class="hint">Affect is the observable emotional expression — facial expression, vocal tone, body language — distinct from mood (self-reported). Describe quality (e.g., euthymic, flat, anxious, dysphoric, bright), range (restricted, broad, labile), congruence with content, and reactivity.</p>
       </div>
 
@@ -321,16 +332,18 @@
         <datalist id="rapport_options">
           <option value="Easily built">
           <option value="Challenging">
-          <option value="Established quickly">
-          <option value="Warmed up over time">
+          <option value="Quickly established">
+          <option value="Slow to build but warmed up over time">
           <option value="Difficult to establish">
-          <option value="Pre-existing from previous session">
+          <option value="Pre-established from previous sessions">
         </datalist>
+        <p class="prose-hint">The rapport with YP was [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="prior_events">Did anything happen prior to the session worth recording?</label>
         <textarea id="prior_events" placeholder="e.g., lateness, confusion on location, lack of contact, difficulty scheduling"></textarea>
+        <p class="prose-hint">Prior to the session, [your answer].</p>
         <p class="hint">Leave blank (or write "nothing of note" / "nil") to omit from the prose.</p>
       </div>
     </section>
@@ -352,6 +365,7 @@
         <div class="field">
           <label class="title" for="consent_questions_detail">What did YP ask about?</label>
           <textarea id="consent_questions_detail" placeholder="e.g., asked about data storage, wanted to know who sees results"></textarea>
+          <p class="prose-hint">Regarding the consent process, YP had questions – [your answer].</p>
         </div>
       </div>
 
@@ -381,6 +395,7 @@
           <div class="field">
             <label class="title" for="ace_cm_reaction">How did YP react to being told this will be passed on to CM?</label>
             <textarea id="ace_cm_reaction" placeholder="e.g., accepted calmly, expressed concerns about confidentiality, asked questions"></textarea>
+            <p class="prose-hint">When informed that this would be passed on to their case manager, [your answer].</p>
           </div>
 
           <div class="field">
@@ -390,6 +405,7 @@
               <option>CM was informed after the session</option>
               <option>CM will be informed after completing this tracking note</option>
             </select>
+            <p class="prose-hint">Plan for informing CM: [your answer].</p>
           </div>
         </div>
       </div>
@@ -411,6 +427,7 @@
           <div class="field">
             <label class="title" for="ace_risk_detail">Further information</label>
             <textarea id="ace_risk_detail" placeholder="What was disclosed, when CM was/will be informed, follow-up plan"></textarea>
+            <p class="prose-hint">Appended after the risk-identified sentence.</p>
           </div>
         </div>
       </div>
@@ -424,21 +441,25 @@
       <div class="field">
         <label class="title" for="neurocog_reaction">How did YP react to Neurocog?</label>
         <textarea id="neurocog_reaction" placeholder="e.g., many 'don't knows', lack of effort, giving up easily, many prompts needed, found word generation and similarities demanding"></textarea>
+        <p class="prose-hint">During the neurocognitive assessment, [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="neurocog_mood">How was YP's mood during neurocog?</label>
         <textarea id="neurocog_mood" placeholder="e.g., frustrated, enthusiastic, bored, irritated, cycled between positive and deflated"></textarea>
+        <p class="prose-hint">[YP]'s mood during neurocog was [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="accommodations">Specific considerations / accommodations?</label>
         <textarea id="accommodations" placeholder="e.g., reading aloud, frequent breaks, snacks, adjusted pacing, session split across two visits"></textarea>
+        <p class="prose-hint">Accommodations included: [your answer].</p>
       </div>
 
       <div class="field section-test-retest">
         <label class="title" for="differences">Any notable differences from previous session?</label>
         <textarea id="differences" placeholder="e.g., more confident with tasks, less anxious, improved engagement, performance appeared consistent"></textarea>
+        <p class="prose-hint">Compared to the previous session, [your answer].</p>
       </div>
     </section>
 
@@ -450,14 +471,15 @@
         <label class="title" for="engagement">YP's engagement</label>
         <input type="text" id="engagement" list="engagement_options" placeholder="Pick from list or type your own">
         <datalist id="engagement_options">
-          <option value="Was engaged throughout the entire session">
-          <option value="Remained engaged throughout">
-          <option value="Warmed up over time">
-          <option value="Was disengaged">
-          <option value="Was enthusiastic">
-          <option value="Fluctuated in engagement">
-          <option value="Initially engaged but fatigued toward end">
+          <option value="Sustained throughout the entire session">
+          <option value="Consistent throughout">
+          <option value="Slow to develop but grew over the session">
+          <option value="Limited">
+          <option value="Enthusiastic">
+          <option value="Fluctuating">
+          <option value="Strong initially but waned toward the end">
         </datalist>
+        <p class="prose-hint">[YP]'s engagement was [your answer].</p>
       </div>
 
       <div class="field">
@@ -471,6 +493,7 @@
           <option value="Thought disorganisation">
           <option value="Affect presentation noted">
         </datalist>
+        <p class="prose-hint">[Your answer — emitted as its own sentence.]</p>
       </div>
 
       <div class="field">
@@ -480,6 +503,7 @@
           <option>Yes</option>
           <option>No – see notes below</option>
         </select>
+        <p class="prose-hint">"Yes" → "The session went according to protocol." Otherwise the value is emitted as-is.</p>
       </div>
 
       <div class="field">
@@ -491,6 +515,7 @@
           <option value="YP disclosed concerns – CM notified">
           <option value="See risk management plan">
         </datalist>
+        <p class="prose-hint">Short "nil risk" forms collapse to "No risks were identified." Longer answers are emitted as-is.</p>
       </div>
 
       <div class="field">
@@ -503,11 +528,13 @@
           <option value="YP left abruptly">
           <option value="Session ended early – see notes">
         </datalist>
+        <p class="prose-hint">The session ended [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="follow_up_support">Was there any follow-up support?</label>
         <textarea id="follow_up_support" placeholder="e.g., drove YP home, contacted case manager, arranged follow-up call"></textarea>
+        <p class="prose-hint">Follow-up: [your answer].</p>
       </div>
     </section>
 
@@ -518,6 +545,7 @@
       <div class="field">
         <label class="title" for="additional_notes">Additional notes / Actions &amp; Plan</label>
         <textarea id="additional_notes" placeholder="Free text for anything not captured above"></textarea>
+        <p class="prose-hint">Additional notes: [your answer].</p>
       </div>
 
       <div class="field">
@@ -527,23 +555,25 @@
           <option>Yes</option>
           <option>No – to be processed by Day Two RA after this session concludes</option>
         </select>
+        <p class="prose-hint">Payment: [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="follow_up_actions">Follow-up actions</label>
         <textarea id="follow_up_actions" placeholder="e.g., book Day Two, check in with CM, send cognitive summary"></textarea>
+        <p class="prose-hint">Follow-up actions: [your answer].</p>
       </div>
 
       <div class="field">
         <label class="title" for="outstanding_items">Outstanding items</label>
         <textarea id="outstanding_items" placeholder="e.g., incomplete questionnaires, missing consent form, need to reschedule split session"></textarea>
+        <p class="prose-hint">Outstanding items: [your answer].</p>
       </div>
     </section>
   </form>
 
   <div class="actions">
-    <button type="button" onclick="generate('kelly')">Generate Prose Version</button>
-    <button type="button" onclick="generate('case_note')">Generate Case Note Version</button>
+    <button type="button" onclick="generate()">Generate Prose</button>
     <button type="button" class="secondary" onclick="window.print()">Print form</button>
     <button type="button" class="danger" onclick="clearAll()">Clear all fields</button>
   </div>
@@ -772,7 +802,7 @@ function readFields() {
 function renderAdmin(f) {
   let out = '';
   if (f.additionalNotes)  { out += 'Additional notes: ' + lcaseFirst(f.additionalNotes); out = ensureTerminated(out); }
-  if (f.payment)          out += 'Payment: ' + f.payment.toLowerCase() + '. ';
+  if (f.payment)          { out += 'Payment: ' + lcaseFirst(f.payment); out = ensureTerminated(out); }
   if (f.followUpActions)  { out += 'Follow-up actions: ' + lcaseFirst(f.followUpActions); out = ensureTerminated(out); }
   if (f.outstandingItems) { out += 'Outstanding items: ' + lcaseFirst(f.outstandingItems); out = ensureTerminated(out); }
   return out;
@@ -856,7 +886,7 @@ function renderACE(f) {
   return out;
 }
 
-// ── Kelly prose (structured) ──
+// ── Prose generator ──
 function generateKellyProse() {
   const f = readFields();
   const subject = f.ypName || 'YP';
@@ -890,7 +920,7 @@ function generateKellyProse() {
   }
   if (f.eyeContact) p += 'Eye contact was ' + f.eyeContact.toLowerCase() + '. ';
   if (f.affect)    { p += f.affect; p = ensureTerminated(p); }
-  if (f.rapport)   p += 'Rapport was ' + f.rapport.toLowerCase() + '. ';
+  if (f.rapport)   p += 'The rapport with YP was ' + f.rapport.toLowerCase() + '. ';
 
   if (f.priorEvents) {
     const peLow = f.priorEvents.toLowerCase();
@@ -918,11 +948,11 @@ function generateKellyProse() {
   p += renderACE(f);
 
   if (f.neurocogReaction) { p += 'During the neurocognitive assessment, ' + lcaseFirst(f.neurocogReaction); p = ensureTerminated(p); }
-  if (f.neurocogMood)     p += subject + '\u2019s mood during neurocog was ' + f.neurocogMood.toLowerCase() + '. ';
+  if (f.neurocogMood)     { p += subject + '\u2019s mood during neurocog was ' + lcaseFirst(f.neurocogMood); p = ensureTerminated(p); }
   if (f.accommodations)   { p += 'Accommodations included: ' + lcaseFirst(f.accommodations); p = ensureTerminated(p); }
   if (f.differences)      { p += 'Compared to the previous session, ' + lcaseFirst(f.differences); p = ensureTerminated(p); }
 
-  if (f.engagement) { p += prefixSubject(subject, f.engagement); p = ensureTerminated(p); }
+  if (f.engagement) p += subject + '\u2019s engagement was ' + f.engagement.toLowerCase() + '. ';
   if (f.clinical)   { p += f.clinical; p = ensureTerminated(p); }
 
   if (f.protocol) {
@@ -941,103 +971,7 @@ function generateKellyProse() {
     else { p += f.risk; p = ensureTerminated(p); }
   }
 
-  if (f.sessionEnd) p += 'The session ended ' + f.sessionEnd.toLowerCase() + '. ';
-  if (f.followUp)   { p += 'Follow-up: ' + lcaseFirst(f.followUp); p = ensureTerminated(p); }
-
-  p += renderAdmin(f);
-
-  return cleanup(p);
-}
-
-// ── Case-note (narrative) ──
-function generateCaseNote() {
-  const f = readFields();
-  const subject = f.ypName || 'YP';
-  const shortDate = toShortDate(f.sessionDateRaw);
-  let p = '';
-
-  if (shortDate) p += shortDate + ' - ';
-
-  const type = document.querySelector('input[name="session_type"]:checked').value;
-  let label;
-  switch (type) {
-    case 'day_one':     label = 'Day 1 of CogScreen'; break;
-    case 'day_two':     label = 'Day 2 of CogScreen'; break;
-    case 'test_retest': label = 'the Test Retest CogScreen'; break;
-    default:            label = 'CogScreen';
-  }
-
-  p += subject + ' attended ' + label + ' session today';
-  if (f.sessionTime) p += ' at ' + f.sessionTime;
-  if (f.location)    p += ' at ' + f.location;
-  if (f.attendees)   p += ' attended by ' + f.attendees;
-  p += '. ';
-
-  if (f.priorEvents) {
-    const peLow = f.priorEvents.toLowerCase();
-    if (!['nothing of note', 'no', 'nil', 'none'].includes(peLow)) {
-      p += 'Prior to the session, ' + lcaseFirst(f.priorEvents);
-      p = ensureTerminated(p);
-    }
-  }
-
-  p += renderFSD(f);
-
-  if (f.appearance) { p += renderAppearance(subject, f.appearance); p = ensureTerminated(p); }
-
-  // Stitch eye contact + rapport when both present
-  if (f.eyeContact && f.rapport) {
-    p += 'Eye contact was ' + f.eyeContact.toLowerCase() + ' and rapport was ' + f.rapport.toLowerCase() + '. ';
-  } else if (f.eyeContact) {
-    p += 'Eye contact was ' + f.eyeContact.toLowerCase() + '. ';
-  } else if (f.rapport) {
-    p += 'Rapport was ' + f.rapport.toLowerCase() + '. ';
-  }
-
-  if (f.affect) { p += f.affect; p = ensureTerminated(p); }
-
-  if (f.consentQ) {
-    p += 'Writer commenced session by taking ' + subject + ' through the consent form. ';
-    if (/had questions/i.test(f.consentQ)) {
-      p += subject + ' had questions';
-      if (f.consentDetail) p += ' \u2013 ' + lcaseFirst(f.consentDetail);
-      p = ensureTerminated(p);
-    } else if (/no questions/i.test(f.consentQ)) {
-      p += subject + ' had no questions regarding the consent process. ';
-    } else {
-      p += lcaseFirst(f.consentQ);
-      p = ensureTerminated(p);
-    }
-  }
-
-  p += renderACE(f);
-
-  if (f.neurocogReaction) { p += 'During the neurocognitive assessment, ' + lcaseFirst(f.neurocogReaction); p = ensureTerminated(p); }
-  if (f.neurocogMood)     p += subject + '\u2019s mood during neurocog was ' + f.neurocogMood.toLowerCase() + '. ';
-  if (f.accommodations)   { p += 'Accommodations: ' + lcaseFirst(f.accommodations); p = ensureTerminated(p); }
-  if (f.differences)      { p += 'Compared to the previous session, ' + lcaseFirst(f.differences); p = ensureTerminated(p); }
-
-  if (f.protocol && f.protocol.toLowerCase().startsWith('yes')) {
-    p += 'Session proceeded as per protocol and all measures were completed. ';
-  } else if (f.protocol) {
-    p += f.protocol; p = ensureTerminated(p);
-  }
-
-  if (f.engagement) { p += prefixSubject(subject, f.engagement); p = ensureTerminated(p); }
-  if (f.clinical)   { p += f.clinical; p = ensureTerminated(p); }
-
-  if (f.risk) {
-    const rLow = f.risk.toLowerCase().trim();
-    const collapseToCanonical = new Set([
-      'nil risk', 'no risk', 'no risks',
-      'no risk concerns identified', 'no risks identified',
-      'no risks were identified'
-    ]);
-    if (collapseToCanonical.has(rLow)) p += 'Nil risk present or identified. ';
-    else { p += f.risk; p = ensureTerminated(p); }
-  }
-
-  if (f.sessionEnd) p += 'The session ended ' + f.sessionEnd.toLowerCase() + '. ';
+  if (f.sessionEnd) { p += 'The session ended ' + lcaseFirst(f.sessionEnd); p = ensureTerminated(p); }
   if (f.followUp)   { p += 'Follow-up: ' + lcaseFirst(f.followUp); p = ensureTerminated(p); }
 
   p += renderAdmin(f);
@@ -1046,8 +980,8 @@ function generateCaseNote() {
 }
 
 // ── UI actions ──
-function generate(style) {
-  const text = (style === 'kelly') ? generateKellyProse() : generateCaseNote();
+function generate() {
+  const text = generateKellyProse();
   const out = document.getElementById('output');
   out.textContent = text;
   document.getElementById('output-card').classList.add('visible');
