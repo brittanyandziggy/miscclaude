@@ -573,10 +573,17 @@
   </form>
 
   <div class="actions">
+    <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; margin-right:12px;">
+      <input type="checkbox" id="short_preamble" style="width:auto; margin:0;">
+      Short preamble
+    </label>
     <button type="button" onclick="generate()">Generate Prose</button>
     <button type="button" class="secondary" onclick="window.print()">Print form</button>
     <button type="button" class="danger" onclick="clearAll()">Clear all fields</button>
   </div>
+  <p class="hint" style="margin: 0 0 16px 0; color: var(--hint); font-size: 12px; font-style: italic;">
+    Short preamble replaces the full consent paragraph with "CogScreen (HREC #2022.275):" for quick notes.
+  </p>
 
   <section class="card" id="output-card">
     <h2>Output</h2>
@@ -753,6 +760,7 @@ function cleanup(s) {
 // ── Read all fields once ──
 function readFields() {
   return {
+    shortPreamble: !!(document.getElementById('short_preamble') || {}).checked,
     ypName: getField('yp_first_name'),
     sessionDateRaw: getField('session_date'),
     sessionTime: cleanTime(getField('session_time')),
@@ -809,25 +817,19 @@ function renderAdmin(f) {
 }
 
 // ── Render the FSD (Flexible Service Delivery) section ──
-function renderFSD(f) {
+function renderFSDStart(f) {
   if (!f.fsdEnabled || !f.fsdType) return '';
   let out = '';
   if (f.fsdType === 'Person transport') {
-    out += 'This session was conducted under FSD (person transport). ';
+    out += 'This session included FSD (person transport). ';
     if (f.fsdPickupLocation || f.fsdPickupTime) {
       out += 'Writer picked up YP';
       if (f.fsdPickupLocation) out += ' from ' + f.fsdPickupLocation;
       if (f.fsdPickupTime)     out += ' at ' + f.fsdPickupTime;
       out += ' and drove them to the session location. ';
     }
-    if (f.fsdDropoffLocation || f.fsdDropoffTime) {
-      out += 'After the session, writer drove YP';
-      if (f.fsdDropoffLocation) out += ' to ' + f.fsdDropoffLocation;
-      if (f.fsdDropoffTime)     out += ', arriving at ' + f.fsdDropoffTime;
-      out += '. ';
-    }
   } else if (f.fsdType === 'Home or community visit') {
-    out += 'This session was conducted under FSD (home or community visit). ';
+    out += 'This session included FSD (home or community visit). ';
     if (f.fsdVisitLocation) out += 'The visit took place at ' + f.fsdVisitLocation + '. ';
     if (f.fsdArrivalTime || f.fsdDepartureTime) {
       out += 'Writer';
@@ -836,11 +838,21 @@ function renderFSD(f) {
       out += '. ';
     }
   } else if (f.fsdType === 'On-site outside of business hours') {
-    out += 'This session was conducted under FSD (on-site outside of business hours). ';
+    out += 'This session included FSD (on-site outside of business hours). ';
   } else {
-    out += 'This session was conducted under FSD (' + f.fsdType.toLowerCase() + '). ';
+    out += 'This session included FSD (' + f.fsdType.toLowerCase() + '). ';
   }
   if (f.fsdNotes) { out += lcaseFirst(f.fsdNotes); out = ensureTerminated(out); }
+  return out;
+}
+
+function renderFSDEnd(f) {
+  if (!f.fsdEnabled || f.fsdType !== 'Person transport') return '';
+  if (!(f.fsdDropoffLocation || f.fsdDropoffTime)) return '';
+  let out = 'After the session, writer drove YP';
+  if (f.fsdDropoffLocation) out += ' to ' + f.fsdDropoffLocation;
+  if (f.fsdDropoffTime)     out += ', arriving at ' + f.fsdDropoffTime;
+  out += '. ';
   return out;
 }
 
@@ -893,16 +905,20 @@ function generateKellyProse() {
   const sessionDate = formatLongDate(f.sessionDateRaw);
   let p = '';
 
-  p += subject + ' consented to participate in the CogScreen (HREC #2022.275) ';
-  p += 'research study. Their participation was supported by their case manager ';
-  p += 'who was consulted prior to any research contact. A summary of their ';
-  p += 'research results (a cognitive summary) will be provided to the case ';
-  p += 'manager to share with YP as per the protocol and consent procedure. ';
+  if (f.shortPreamble) {
+    p += 'CogScreen (HREC #2022.275): ';
+  } else {
+    p += subject + ' consented to participate in the CogScreen (HREC #2022.275) ';
+    p += 'research study. Their participation was supported by their case manager ';
+    p += 'who was consulted prior to any research contact. A summary of their ';
+    p += 'research results (a cognitive summary) will be provided to the case ';
+    p += 'manager to share with YP as per the protocol and consent procedure. ';
+  }
 
   if (sessionDate) {
     p += 'The session was conducted on ' + sessionDate;
     if (f.sessionTime) p += ' at ' + f.sessionTime;
-    if (f.location)    p += ' conducted at ' + f.location;
+    if (f.location)    p += ' at ' + f.location;
     if (f.attendees)   p += ' attended by ' + f.attendees;
     p += '. ';
   } else if (f.location || f.attendees) {
@@ -912,7 +928,7 @@ function generateKellyProse() {
     p += '. ';
   }
 
-  p += renderFSD(f);
+  p += renderFSDStart(f);
 
   if (f.appearance) {
     p += renderAppearance(subject, f.appearance);
@@ -972,6 +988,9 @@ function generateKellyProse() {
   }
 
   if (f.sessionEnd) { p += 'The session ended ' + lcaseFirst(f.sessionEnd); p = ensureTerminated(p); }
+
+  p += renderFSDEnd(f);
+
   if (f.followUp)   { p += 'Follow-up: ' + lcaseFirst(f.followUp); p = ensureTerminated(p); }
 
   p += renderAdmin(f);
