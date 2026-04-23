@@ -44,6 +44,26 @@
   }
   .privacy strong { color: var(--blue-dark); }
 
+  details.intro {
+    background: #F4F8FC;
+    border: 1px solid #CFE0F0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 16px 0 12px;
+    font-size: 13px;
+  }
+  details.intro summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--blue-dark);
+    list-style: none;
+  }
+  details.intro summary::-webkit-details-marker { display: none; }
+  details.intro summary::before { content: "▸ "; display: inline-block; transition: transform 0.15s; }
+  details.intro[open] summary::before { content: "▾ "; }
+  details.intro p { margin: 10px 0 4px; }
+  details.intro p:last-child { margin-bottom: 4px; }
+
   .session-type {
     background: white;
     border: 1px solid var(--grey-border);
@@ -177,6 +197,14 @@
     <h1>CogScreen Session Tracking Note</h1>
     <div class="hrec">HREC #2022.275</div>
   </header>
+
+  <details class="intro">
+    <summary>What is this? (click to expand)</summary>
+    <p>This is a smart form for turning structured session notes into flowing prose. Fill it in, click <strong>Generate Prose</strong>, and copy the result into wherever your notes live.</p>
+    <p><strong>Is this a website?</strong> Not in the usual sense. A normal website lives on a company's server, and your computer talks to that server over the internet. This is different — it's a single file (like a Word document or PDF) that happens to open in your browser instead of Word. Everything runs on your own computer. Nothing is uploaded, nothing is sent anywhere, and no internet connection is needed. You could unplug the Wi-Fi and it would still work.</p>
+    <p><strong>Where does the information go?</strong> Only into this browser tab, while you're using it. The moment you close or refresh the tab, everything you typed disappears. Nothing is saved, nothing is remembered, nothing is logged. There is no database of client information anywhere.</p>
+    <p><strong>How to share:</strong> send someone the <code>index.html</code> file as an email attachment or via OneDrive/SharePoint. They save it anywhere (Desktop, work folder), double-click to open it in their browser, and use it the same way. No install, no account, no sign-up.</p>
+  </details>
 
   <div class="privacy">
     <strong>Privacy:</strong> All data stays in your browser. Nothing is saved or
