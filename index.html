@@ -943,15 +943,21 @@ function generateKellyProse() {
     p += 'manager to share with YP as per the protocol and consent procedure. ';
   }
 
+  const sessionTypeRaw = (document.querySelector('input[name="session_type"]:checked') || {}).value || '';
+  let sessionLabel = 'session';
+  if (sessionTypeRaw === 'day_one')     sessionLabel = 'Day One session';
+  else if (sessionTypeRaw === 'day_two') sessionLabel = 'Day Two session';
+  else if (sessionTypeRaw === 'test_retest') sessionLabel = 'test-retest session';
+
   if (sessionDate) {
-    p += 'The session was conducted on ' + sessionDate;
+    p += 'The ' + sessionLabel + ' was conducted on ' + sessionDate;
     if (f.sessionTime) p += ' at ' + f.sessionTime;
     if (f.location)    p += ' at ' + f.location;
     if (f.attendees)   p += ' attended by ' + f.attendees;
     p += '. ';
   } else if (f.location || f.attendees) {
-    if (f.location)  p += 'The session was conducted at ' + f.location;
-    else             p += 'The session was';
+    if (f.location)  p += 'The ' + sessionLabel + ' was conducted at ' + f.location;
+    else             p += 'The ' + sessionLabel + ' was';
     if (f.attendees) p += ' attended by ' + f.attendees;
     p += '. ';
   }
